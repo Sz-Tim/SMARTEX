@@ -49,10 +49,10 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
     
     # Define variables
     var_u <- ncvar_def("water_u", "m/s", 
-                       list(dim_time, dim_depth, dim_lat, dim_lon), -30000, 
+                       list(dim_lon, dim_lat, dim_depth, dim_time), -30000, 
                        longname = "Eastward Water Velocity", prec = "float")
     var_v <- ncvar_def("water_v", "m/s", 
-                       list(dim_time, dim_depth, dim_lat, dim_lon), -30000, 
+                       list(dim_lon, dim_lat, dim_depth, dim_time), -30000, 
                        longname = "Northward Water Velocity", prec = "float")
     
     # Create nc file
@@ -111,4 +111,35 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
     saveRDS(ranges, out_rng)
   }
   return(cat("Created: \n  ", out_nc, "\n  ", out_rds, "\n  ", out_rng, "\n"))
+}
+
+
+
+
+
+download_hycom_ftp <- function(url_base="http://data.hycom.org/datasets/GLBy0.08/expt_93.0/data/hindcasts", 
+                               date_range, dir_nc) {
+  library(xml2); library(rvest)
+  date_seq <- seq(date_range[1], date_range[2], by=1)
+  dateChr_seq <- str_remove_all(date_seq, "-")
+  years <- unique(year(date_seq))
+  
+  for(i in seq_along(years)) {
+    url_i <- glue("{url_base}/{years[i]}/")
+    links <- read_html(url_i) |> 
+      html_nodes("a") |>
+      html_attr("href") |> 
+      grep("ssh.nc", x=_, value=T) |>
+      unique()
+    link_dates <- str_sub(links, 16, 23)
+    links_to_get <- links[link_dates %in% dateChr_seq]
+    for(j in seq_along(links_to_get)) {
+      if(j %% 20 == 0) {
+        cat("Time: ", as.character(Sys.time()))
+      }
+      download.file(glue("{url_i}{links_to_get[j]}"), 
+                    glue("{dir_nc}{links_to_get[j]}"))
+    }
+  }
+  
 }
