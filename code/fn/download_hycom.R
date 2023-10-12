@@ -4,7 +4,9 @@
 # tim.szewczyk@sams.ac.uk
 
 
-download_hycom <- function(hy_i, bbox, time_range, depth_range=c(1, 40), 
+download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0", 
+                           hy_i, 
+                           bbox, time_range, depth_range=c(1, 40), 
                            out_nc=NULL, out_rds=NULL, out_rng=NULL) {
   library(tidyverse); library(ncdf4)
   
@@ -27,7 +29,7 @@ download_hycom <- function(hy_i, bbox, time_range, depth_range=c(1, 40),
   chunk_ls <- chunk_df.ls <- map(seq_along(chunk_suf), ~list())
   
   # Generate URL and attempt to download
-  nc_url <- paste0(thredds_url, chunk_suf)
+  nc_url <- paste0(url_base, chunk_suf)
   hy_nc <- nc_open(nc_url)
   hy_ls <- list(
     depth=ncvar_get(hy_nc, "depth"),
