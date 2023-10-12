@@ -1,3 +1,7 @@
+
+# anim temp files
+/figs/anim/temp/*
+
 # History files
 .Rhistory
 .Rapp.history
