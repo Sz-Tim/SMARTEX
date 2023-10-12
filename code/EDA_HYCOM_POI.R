@@ -36,13 +36,13 @@ machine <- list("SA04TS-CB33BW2"=1, "SA05MH-5SJZN53"=2, "salmon"=3)[[Sys.info()[
 dirs <- list(
   nc=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
        "D:/Projects/SMARTEX/data/HYCOM/",
-       "./data/HYCOM/")[machine],
+       "/media/archiver/common/sa04ts-temp/HYCOM/")[machine],
   rds=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
         "D:/Projects/SMARTEX/data/HYCOM/",
-        "./data/HYCOM/")[machine],
+        "~/SMARTEX/data/HYCOM/")[machine],
   rng=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
         "D:/Projects/SMARTEX/data/HYCOM/",
-        "./data/HYCOM/")[machine]
+        "~/SMARTEX/data/HYCOM/")[machine]
 )
 
 
