@@ -32,9 +32,12 @@ download_cmems <- function(creds,
                           lon=nc.lon[lon_i]) |>
     mutate(sla=c(ncvar_get(nc, "sla", start=var.start, count=var.count)),
            adt=c(ncvar_get(nc, "adt", start=var.start, count=var.count)),
+           ugos=c(ncvar_get(nc, "ugos", start=var.start, count=var.count)),
+           vgos=c(ncvar_get(nc, "vgos", start=var.start, count=var.count)),
            ugosa=c(ncvar_get(nc, "ugosa", start=var.start, count=var.count)),
            vgosa=c(ncvar_get(nc, "vgosa", start=var.start, count=var.count))) |>
-    mutate(EKE_cm2s2=((ugosa*100)^2 + (vgosa*100)^2) / 2)
+    mutate(uv=sqrt(ugos^2 + vgos^2),
+           EKE_cm2s2=((ugosa*100)^2 + (vgosa*100)^2) / 2)
   
   return(cmems_df)
   
