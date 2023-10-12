@@ -32,7 +32,7 @@ ccz_bbox <- list(xmin=-160, xmax=-90, ymin=0, ymax=23.5)
 
 bathy <- read_stars("data/bathymetry/gebco_2023_n23.5_s0.0_w-160.0_e-90.0.tif")
 
-machine <- list("SA04TS-CB33BW2"=1, "laptop"=2, "salmon"=3)[[Sys.info()["nodename"]]]
+machine <- list("SA04TS-CB33BW2"=1, "SA05MH-5SJZN53"=2, "salmon"=3)[[Sys.info()["nodename"]]]
 dirs <- list(
   nc=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
        "D:/Projects/SMARTEX/data/HYCOM/",
