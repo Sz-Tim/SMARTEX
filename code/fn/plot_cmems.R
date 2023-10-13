@@ -43,8 +43,8 @@ plot_cmems <- function(df, bathy=NULL, land=NULL, ccz, POI,
     {if(!is.null(land)) {
       geom_sf(data=land) } 
     } +
-    # geom_tile(aes(lon, lat, fill=.data[[fill_var]]), alpha=1, colour=NA) +
-    geom_tile(aes(lon, lat, fill=.data[[fill_var]], alpha=sqrt(abs(sla))), colour=NA) +
+    # geom_raster(aes(lon, lat, fill=.data[[fill_var]]), alpha=1) +
+    geom_raster(aes(lon, lat, fill=.data[[fill_var]], alpha=sqrt(abs(sla)))) +
     scale_alpha_continuous(limits=alpha_lim, range=c(0.5, 1), guide="none") +
     fill_pal + 
     {if(!is.null(tracks)) {
