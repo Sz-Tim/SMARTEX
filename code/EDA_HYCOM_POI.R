@@ -24,15 +24,17 @@ dirf("code/fn/") |> walk(source)
 POI <- read_csv("data/SMARTEX_locations_copy.csv") |>
   filter(grepl("BGR|Long|Atoll|001|002", Name_Full))
 
-ccz <- st_read("data/CCZ_areas/ccz_outline.gpkg")
+# ccz <- st_read("data/CCZ_areas/ccz_outline.gpkg")
 POI_bbox <- list(xmin=-120, xmax=-100, ymin=7, ymax=15)
-POI_bbox <- list(xmin=-103, xmax=-100, ymin=11, ymax=13)
 east_bbox <- list(xmin=-130, xmax=-90, ymin=2, ymax=20)
 ccz_bbox <- list(xmin=-160, xmax=-90, ymin=0, ymax=23.5)
 
-bathy <- read_stars("data/bathymetry/gebco_2023_n23.5_s0.0_w-160.0_e-90.0.tif")
+# bathy <- read_stars("data/bathymetry/gebco_2023_n23.5_s0.0_w-160.0_e-90.0.tif")
 
-machine <- list("SA04TS-CB33BW2"=1, "SA05MH-5SJZN53"=2, "salmon"=3)[[Sys.info()["nodename"]]]
+machine <- switch(Sys.info()["nodename"], 
+                  "SA04TS-CB33BW2"=1, 
+                  "SA05MH-5SJZN53"=2, 
+                  "salmon"=3)
 dirs <- list(
   nc=c(#"E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
        "W:/common/sa04ts/HYCOM/",
@@ -63,7 +65,7 @@ hy_i <- list(lon=ncvar_get(hy_nc, "lon"),
              depth=ncvar_get(hy_nc, "depth"))
 nc_close(hy_nc)
 
-for(j in 1:nrow(date_df)) {
+for(j in seq_along(date_seq)) {
   gc()
   d <- date_seq[j]
   ymdh_j <- as.numeric(difftime(as_datetime(paste(d, "00:00:00")), 
