@@ -34,21 +34,22 @@ bathy <- read_stars("data/bathymetry/gebco_2023_n23.5_s0.0_w-160.0_e-90.0.tif")
 
 machine <- list("SA04TS-CB33BW2"=1, "SA05MH-5SJZN53"=2, "salmon"=3)[[Sys.info()["nodename"]]]
 dirs <- list(
-  nc=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
+  nc=c(#"E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
+       "W:/common/sa04ts/HYCOM/",
        "D:/Projects/SMARTEX/data/HYCOM/",
-       "/media/archiver/common/sa04ts-temp/HYCOM/")[machine],
+       "~/SMARTEX/data/HYCOM/"),
   rds=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
         "D:/Projects/SMARTEX/data/HYCOM/",
-        "~/SMARTEX/data/HYCOM/")[machine],
+        "~/SMARTEX/data/HYCOM/"),
   rng=c("E:/Projects/SMARTEX/SMARTEX/data/HYCOM/",
         "D:/Projects/SMARTEX/data/HYCOM/",
-        "~/SMARTEX/data/HYCOM/")[machine]
-)
+        "~/SMARTEX/data/HYCOM/")
+) |> map(~.x[machine])
 
 
-
-date_df <- tibble(start=ymd("2023-01-01") + seq(0, 230, by=1), # or: "2023-01-01", 0:300
-                  end=ymd("2023-01-01") + seq(0, 230, by=1)) # or: "2023-01-01", 0:300
+hy_dataset <- c("uv3z", "ssh")[2]
+bbox <- ccz_bbox
+date_seq <- seq(ymd("2023-01-01"), today(), by=1)
 
 
 
@@ -63,22 +64,32 @@ hy_i <- list(lon=ncvar_get(hy_nc, "lon"),
 nc_close(hy_nc)
 
 for(j in 1:nrow(date_df)) {
-  d <- c(date_df[j,])
-  dates <- c(paste0(year(d[[1]]), "-", month(d[[1]]), "-", day(d[[1]]), " 00:00:00"),
-             paste0(year(d[[2]]), "-", month(d[[2]]), "-", day(d[[2]]), " 23:59:59"))
-  dates_h <- as.numeric(difftime(as_datetime(dates),
-                                 as_datetime("2000-01-01 00:00:00"),
-                                 units="hours"))
-  cat("Starting", as.character(d$start), "at", as.character(Sys.time()), "\n")
-  if(file.exists(glue("{dirs$nc}POI_cube_{d[[1]]}.nc"))) next
+  gc()
+  d <- date_seq[j]
+  ymdh_j <- as.numeric(difftime(as_datetime(paste(d, "00:00:00")), 
+                                as_datetime("2000-01-01 00:00:00"),
+                                units="hours"))
+  cat("Starting", as.character(d), "at", format(Sys.time()), "\n")
   
-  try({
-    download_hycom(hy_i, POI_bbox, dates_h, depth_range=c(1, 2), 
-                   out_nc=glue("{dirs$nc}TEST_POI_cube_{d[[1]]}.nc"),
-                   out_rds=glue("{dirs$rds}TEST_POI_cube_{d[[1]]}.rds"),
-                   out_rng=glue("{dirs$rng}TEST_POI_cube_ranges_{d[[1]]}.rds"))
-  }, outFile=glue("{dirs$nc}HYCOM.log"))
+  file_base <- glue("hycom_glby_930_{hy_dataset}_",
+                    "{bbox$xmin}Eto{bbox$xmax}E_", 
+                    "{bbox$ymin}Nto{bbox$ymin}N")
   
+  for(i in seq(0, 23, by=3)) {
+    dates_ij <- rep(ymdh_j + i, 2)
+    i_ <- str_pad(i, 2, "left", "0")
+    if(file.exists(glue("{dirs$nc}{file_base}_{d}_{i_}h.nc"))) {
+      next
+    }
+    try({
+      download_hycom(glue("{thredds_url}/{hy_dataset}"), hy_i, 
+                     bbox, dates_ij, 
+                     depth_range=c(1, ifelse(hy_dataset=="ssh", 1, 40)), 
+                     out_nc=glue("{dirs$nc}{file_base}_{d}_{i_}h.nc"),
+                     out_rds=glue("{dirs$rds}{file_base}_{d}_{i_}h.rds"),
+                     out_rng=glue("{dirs$rng}{file_base}_ranges_{d}_{i_}h.rds"))
+    }, outFile=glue("~/HYCOM.log"))
+  }
   gc()
 }
 
