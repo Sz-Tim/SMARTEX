@@ -48,8 +48,6 @@ dirs <- list(
         "~/SMARTEX/data/HYCOM/")
 ) |> map(~.x[machine])
 
-
-hy_dataset <- c("uv3z", "ssh")[2]
 bbox <- ccz_bbox
 date_seq <- seq(ymd("2023-01-01"), today(), by=1)
 
@@ -73,9 +71,9 @@ for(j in seq_along(date_seq)) {
                                 units="hours"))
   cat("Starting", as.character(d), "at", format(Sys.time()), "\n")
   
-  file_base <- glue("hycom_glby_930_{hy_dataset}_",
+  file_base <- glue("hycom_glby_930_",
                     "{bbox$xmin}Eto{bbox$xmax}E_", 
-                    "{bbox$ymin}Nto{bbox$ymin}N")
+                    "{bbox$ymin}Nto{bbox$ymax}N")
   
   for(i in seq(0, 23, by=3)) {
     dates_ij <- rep(ymdh_j + i, 2)
@@ -84,15 +82,15 @@ for(j in seq_along(date_seq)) {
       next
     }
     try({
-      download_hycom(glue("{thredds_url}/{hy_dataset}"), hy_i, 
+      download_hycom(thredds_url, hy_i, 
                      bbox, dates_ij, 
-                     depth_range=c(1, ifelse(hy_dataset=="ssh", 1, 40)), 
+                     depth_range=c(1, 40), 
                      out_nc=glue("{dirs$nc}{file_base}_{d}_{i_}h.nc"),
                      out_rds=glue("{dirs$rds}{file_base}_{d}_{i_}h.rds"),
                      out_rng=glue("{dirs$rng}{file_base}_ranges_{d}_{i_}h.rds"))
     }, outFile=glue("~/HYCOM.log"))
+    gc()
   }
-  gc()
 }
 
 
