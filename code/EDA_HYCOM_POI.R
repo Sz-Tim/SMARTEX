@@ -78,9 +78,6 @@ for(j in seq_along(date_seq)) {
   for(i in seq(0, 23, by=3)) {
     dates_ij <- rep(ymdh_j + i, 2)
     i_ <- str_pad(i, 2, "left", "0")
-    if(file.exists(glue("{dirs$nc}{file_base}_{d}_{i_}h.nc"))) {
-      next
-    }
     try({
       download_hycom(thredds_url, hy_i, 
                      bbox, dates_ij, 

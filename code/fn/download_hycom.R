@@ -37,6 +37,9 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
   
   # Generate URL and attempt to download
   nc_url <- paste0(url_base, chunk_suf)
+  if(file.exists(out_nc)) {
+    nc_url <- out_nc
+  }
   hy_nc <- nc_open(nc_url)
   hy_ls <- list(
     time=ncvar_get(hy_nc, "time"),
@@ -77,7 +80,7 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
   nc_close(hy_nc)
   
   # Store nc as out_nc
-  if(!is.null(out_nc)) {
+  if(!is.null(out_nc) & !file.exists(out_nc)) {
     # Create nc file
     ncnew <- nc_create(out_nc, vars)
     # global attributes
