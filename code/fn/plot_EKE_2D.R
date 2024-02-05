@@ -15,10 +15,14 @@ plot_EKE_2D <- function(cmems_df, bathy, ccz, POI, fill_var, fill_title,
               EKE_sd=sd(EKE)) |> 
     ungroup() |>
     ggplot() + 
-    geom_sf(data=bathy, aes(fill=elev), colour=NA, alpha=0.5) +
-    scale_fill_distiller(type="seq", palette="Greys", direction=1, guide="none") +
+    geom_stars(data=bathy, downsample=10) +
+    scale_fill_continuous_divergingx(h1=0, h2=NA, h3=0, 
+                                     c1=0, c2=NA, c3=0, 
+                                     l1=0, l2=90, l3=0, 
+                                     p1=1.3, p2=NA, p3=1.3, p4=0.75, 
+                                     cmax1=NA, cmax2=NA, guide="none")+
     new_scale_fill() +
-    geom_tile(aes(lon, lat, fill=.data[[fill_var]])) + 
+    geom_raster(aes(lon, lat, fill=.data[[fill_var]])) + 
     scale_fill_viridis_c(fill_title, 
                          option="inferno") + 
     geom_sf(data=ccz, linewidth=0.25, colour="grey") +

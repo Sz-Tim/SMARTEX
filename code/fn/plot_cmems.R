@@ -4,20 +4,22 @@
 # tim.szewczyk@sams.ac.uk
 
 
-plot_cmems <- function(df, bathy=NULL, land=NULL, ccz, POI, 
-                       fill_var, fill_lim, alpha_lim, title, 
+plot_cmems <- function(df, bathy=NULL, land=NULL, ccz, eez, POI, 
+                       fill_var, fill_lim, alpha_lim=NULL, title, 
                        xlim=c(NA_real_, NA_real_), ylim=c(NA_real_, NA_real_), 
                        out_f=NA, out_dim=NULL,
                        tracks=NULL, darkLines=TRUE) {
-  
+  library(tidyverse); library(colorspace)
   fill_pal <- find_palette(fill_var, fill_lim, "fill")
   if(darkLines) {
     cols <- list(ccz="grey30",
+                 eez="grey30",
                  POI="black",
                  active="black",
                  inactive="grey30")
   } else {
     cols <- list(ccz="grey",
+                 eez="grey",
                  POI="darkslategray1",
                  active="grey95",
                  inactive="grey80")
@@ -43,18 +45,29 @@ plot_cmems <- function(df, bathy=NULL, land=NULL, ccz, POI,
     {if(!is.null(land)) {
       geom_sf(data=land) } 
     } +
-    # geom_raster(aes(lon, lat, fill=.data[[fill_var]]), alpha=1) +
-    geom_raster(aes(lon, lat, fill=.data[[fill_var]], alpha=sqrt(abs(sla)))) +
-    scale_alpha_continuous(limits=alpha_lim, range=c(0.5, 1), guide="none") +
+    {if(!is.null(alpha_lim)) {
+      geom_raster(aes(lon, lat, fill=.data[[fill_var]], alpha=sla^2))
+    }} +
+    {if(!is.null(alpha_lim)) {
+      scale_alpha_continuous(limits=alpha_lim, range=c(0.2, 1), guide="none")
+    }} +
+    {if(is.null(alpha_lim)) {
+      geom_raster(aes(lon, lat, fill=.data[[fill_var]]), alpha=1)
+    }} +
     fill_pal + 
-    {if(!is.null(tracks)) {
-      geom_path(data=tracks, aes(lon, lat, group=track, colour=active, linewidth=active))
+    {if(!is.null(tracks) & !("sf" %in% class(tracks))) {
+      geom_path(data=tracks, aes(lon, lat, group=track, colour=active, linewidth=active, size=active))
+    }} +
+    {if(!is.null(tracks) & ("sf" %in% class(tracks))) {
+      geom_sf(data=tracks, aes(colour=active, linewidth=active, size=active), fill=NA)
     }} +
     scale_colour_manual(values=c("FALSE"=cols$inactive, "TRUE"=cols$active), guide="none") +
-    geom_sf(data=ccz, linewidth=0.25, colour=cols$ccz) +
+    geom_sf(data=eez, linewidth=0.75, colour=cols$eez, fill=NA) +
+    geom_sf(data=ccz, linewidth=0.25, colour=cols$ccz, fill=NA) +
     geom_sf(data=ccz |> filter(Contractor=="UKSRL"), linewidth=0.75, colour=cols$ccz) +
     geom_point(data=POI, aes(lon, lat, shape=name), colour=cols$POI, size=3) +
-    scale_linewidth_manual("", values=c("FALSE"=0.4, "TRUE"=0.8), guide="none") + 
+    scale_linewidth_manual("", values=c("FALSE"=0.1, "TRUE"=0.8), guide="none") + 
+    scale_size_manual("", values=c("FALSE"=0.25, "TRUE"=1), guide="none") + 
     scale_shape_manual("", values=c(5,19,3,4)) +
     labs(title=title) + 
     xlim(xlim[[1]], xlim[[2]]) + ylim(ylim[[1]], ylim[[2]]) +

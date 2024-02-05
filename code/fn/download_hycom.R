@@ -40,75 +40,75 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
   if(file.exists(out_nc)) {
     nc_url <- out_nc
   }
-  hy_nc <- nc_open(nc_url)
-  hy_ls <- list(
-    time=ncvar_get(hy_nc, "time"),
-    lon=ncvar_get(hy_nc, "lon"),
-    lat=ncvar_get(hy_nc, "lat")
-  )
-  hy_ls$depth <- ncvar_get(hy_nc, "depth")
-  hy_ls$water_u <- ncvar_get(hy_nc, "water_u")
-  hy_ls$water_v <- ncvar_get(hy_nc, "water_v")
-  hy_ls$water_temp <- ncvar_get(hy_nc, "water_temp")
-  hy_ls$salinity <- ncvar_get(hy_nc, "salinity")
-  hy_ls$surf_el <- ncvar_get(hy_nc, "surf_el")
-  hy_ls$water_u_bottom <- ncvar_get(hy_nc, "water_u_bottom")
-  hy_ls$water_v_bottom <- ncvar_get(hy_nc, "water_v_bottom")
-  hy_ls$water_temp_bottom <- ncvar_get(hy_nc, "water_temp_bottom")
-  hy_ls$salinity_bottom <- ncvar_get(hy_nc, "salinity_bottom")
-  
-  # Get attributes
-  atts <- c(names(hy_nc$dim), names(hy_nc$var)) |>
-    as.list() |>
-    append(0) |>
-    set_names(c(names(hy_nc$dim), names(hy_nc$var), "global")) |>
-    map(~ncatt_get(hy_nc, .x))
-  # Define the dimensions
-  dims <- list("lon", "lat", "depth", "time") |>
-    discard(is.na) |>
-    set_names() |>
-    map(~ncdim_def(.x, atts[[.x]]$units, hy_ls[[.x]]))
-  # Define variables
-  dims_ls <- list(
-    xyz=dims,
-    xy=dims[-3]
-  )
-  vars <- names(hy_nc$var) |>
-    as.list() |> 
-    set_names() |>
-    map(~ncvar_def(.x, atts[[.x]]$units, dims_ls[[(grepl("surf|bottom", .x))+1]]))
-  nc_close(hy_nc)
+  if(!is.null(out_nc) | !is.null(out_rds)) {
+    hy_nc <- nc_open(nc_url)
+    hy_ls <- map(c(names(hy_nc$dim), names(hy_nc$var)), 
+                 ~ncvar_get(hy_nc, .x, raw_datavals=TRUE)) |>
+      set_names(c(names(hy_nc$dim), names(hy_nc$var)))
+    
+    # Get attributes
+    atts <- c(names(hy_nc$dim), names(hy_nc$var)) |>
+      as.list() |>
+      append(0) |>
+      set_names(c(names(hy_nc$dim), names(hy_nc$var), "global")) |>
+      map(~ncatt_get(hy_nc, .x))
+    # Define the dimensions
+    dims <- list("lon", "lat", "depth", "time") |>
+      discard(is.na) |>
+      set_names() |>
+      map(~ncdim_def(.x, atts[[.x]]$units, hy_ls[[.x]]))
+    # Define variables
+    dims_ls <- list(
+      xyz=dims,
+      xy=dims[-3]
+    )
+    vars <- names(hy_nc$var) |>
+      as.list() |> 
+      set_names() |>
+      map(~ncvar_def(.x, atts[[.x]]$units, dims_ls[[(grepl("surf|bottom", .x))+1]]))
+    nc_close(hy_nc) 
+  }
   
   # Store nc as out_nc
-  if(!is.null(out_nc) & !file.exists(out_nc)) {
-    # Create nc file
-    ncnew <- nc_create(out_nc, vars)
-    # global attributes
-    for(att in names(atts[["global"]])) {
-      ncatt_put(ncnew, 0, att, atts[["global"]][[att]])
-    }
-    # dimension attributes
-    for(d in names(dims)) {
-      for(att in names(atts[[d]])) {
-        ncatt_put(ncnew, d, att, atts[[d]][[att]])
+  if(!is.null(out_nc)) {
+    if(!file.exists(out_nc)) {
+      # Create nc file
+      ncnew <- nc_create(out_nc, vars)
+      # global attributes
+      for(att in names(atts[["global"]])) {
+        ncatt_put(ncnew, 0, att, atts[["global"]][[att]])
       }
-    }
-    # variables
-    walk(names(vars), ~ncvar_put(nc=ncnew, varid=vars[[.x]], vals=hy_ls[[.x]]))
-    for(v in names(vars)) {
-      for(att in names(atts[[v]])) {
-        ncatt_put(ncnew, v, att, atts[[v]][[att]])
+      # dimension attributes
+      for(d in names(dims)) {
+        for(att in names(atts[[d]])) {
+          ncatt_put(ncnew, d, att, atts[[d]][[att]])
+        }
       }
+      # variables
+      walk(names(vars), ~ncvar_put(nc=ncnew, varid=vars[[.x]], vals=hy_ls[[.x]]))
+      for(v in names(vars)) {
+        for(att in names(atts[[v]])) {
+          ncatt_put(ncnew, v, att, atts[[v]][[att]])
+        }
+      }
+      nc_close(ncnew)  
     }
-    nc_close(ncnew) 
   }
   
   if(!is.null(out_rds)) {
+    if(!file.exists(str_replace(out_rds, ".rds", "_3D.rds")) &
+       !file.exists(str_replace(out_rds, ".rds", "_2D.rds"))) {
+      hy_nc <- nc_open(out_nc)
+      hy_ls <- map(c(names(hy_nc$dim), names(hy_nc$var)), 
+                   ~ncvar_get(hy_nc, .x)) |>
+        set_names(c(names(hy_nc$dim), names(hy_nc$var)))
+      nc_close(hy_nc)
+      
       # create dataframe
-      hy_df <- expand_grid(time=hy_ls$time,
-                           depth=hy_ls$depth,
-                           lat=hy_ls$lat,
-                           lon=hy_ls$lon) |>
+      hy_df <- expand_grid(time=c(hy_ls$time),
+                           depth=c(hy_ls$depth),
+                           lat=c(hy_ls$lat),
+                           lon=c(hy_ls$lon)) |>
         arrange(time, depth, lat, lon) |>
         mutate(id=as.numeric(as.factor(paste(lon, lat))),
                time=as_datetime("2000-01-01 00:00:00") + time*60*60,
@@ -120,9 +120,10 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
                uv=sqrt(u2v2),
                uvDir=atan2(v,u))
       saveRDS(hy_df, str_replace(out_rds, ".rds", "_3D.rds"))
-      hy_2D_df <- expand_grid(time=hy_ls$time,
-                              lat=hy_ls$lat,
-                              lon=hy_ls$lon) |>
+      
+      hy_2D_df <- expand_grid(time=c(hy_ls$time),
+                              lat=c(hy_ls$lat),
+                              lon=c(hy_ls$lon)) |>
         arrange(time, lat, lon) |>
         mutate(id=as.numeric(as.factor(paste(lon, lat))),
                time=as_datetime("2000-01-01 00:00:00") + time*60*60,
@@ -134,9 +135,11 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
         mutate(u2v2_bottom=water_u_bottom^2 + water_v_bottom^2,
                uv_bottom=sqrt(u2v2_bottom),
                uvDir_bottom=atan2(water_v_bottom, water_u_bottom))
-    saveRDS(hy_2D_df, str_replace(out_rds, ".rds", "_2D.rds"))
+      saveRDS(hy_2D_df, str_replace(out_rds, ".rds", "_2D.rds"))
+    }
   }
-  if(!is.null(out_rng)) {
+      
+  if(!is.null(out_rng) & "hy_df" %in% ls()) {
     ranges <- hy_df |>
       group_by(depth) |>
       summarise(u_min=min(u, na.rm=T),
@@ -170,6 +173,7 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
                 salinity_sd=sd(salinity, na.rm=T)) |>
       ungroup()
     saveRDS(ranges, str_replace(out_rng, ".rds", "_3D.rds"))
+    
     ranges_2D <- hy_2D_df |>
       summarise(surf_el_min=min(surf_el, na.rm=T),
                 surf_el_max=max(surf_el, na.rm=T),
@@ -207,9 +211,11 @@ download_hycom <- function(url_base="http://tds.hycom.org/thredds/dodsC/GLBy0.08
                 salinity_bottom_sd=sd(salinity_bottom, na.rm=T)) |>
       ungroup()
     saveRDS(ranges_2D, str_replace(out_rng, ".rds", "_2D.rds"))
-    
   }
-  return(cat("Created: \n  ", out_nc, "\n  ", out_rds, "\n  ", out_rng, "\n"))
+  return(cat("Created: \n  ", out_nc, 
+             ifelse(is.null(out_rds), "", paste0("\n  ", out_rds)), 
+             ifelse(is.null(out_rng), "", paste0("\n  ", out_rng)), 
+             "\n"))
 }
 
 
